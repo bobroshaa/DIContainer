@@ -33,4 +33,17 @@ public class Tests
         var service1 = provider.Resolve<IService>();
         Assert.That(service1.GetType().ToString(), Is.EqualTo("DITests.ServiceImpl"));
     }
+
+    [Test]
+    public void Test3()
+    {
+        var dependencies = new DependenciesConfiguration();
+        dependencies.Register<IService1, Service1>(LivingTime.Singleton);
+ 
+        var provider = new DependencyProvider(dependencies);
+        var service1 = provider.Resolve<IService1>();
+        service1.SomeData = "singleton";
+        var newService1 = provider.Resolve<IService1>();
+        Assert.That(newService1.SomeData, Is.EqualTo("singleton"));
+    }
 }

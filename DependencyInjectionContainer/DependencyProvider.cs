@@ -28,9 +28,16 @@ public class DependencyProvider
         
         ConstructorInfo constructor = implementation.ImplementationType.GetConstructors()[0];
         ParameterInfo[] parameters = constructor.GetParameters();
+        object instance;
         if (parameters.Length == 0)
         {
-            return Activator.CreateInstance(implementation.ImplementationType);
+            instance = Activator.CreateInstance(implementation.ImplementationType);
+            if (implementation.TimeToLive == LivingTime.Singleton)
+            {
+                singletonDependency[implementation.ImplementationType] = instance;
+            }
+
+            return instance;
         }
 
         List<object> initializedParameters = new List<object>(parameters.Length);
@@ -39,7 +46,7 @@ public class DependencyProvider
             initializedParameters.Add(Resolve(param.ParameterType));
         }
 
-        var instance = constructor.Invoke(initializedParameters.ToArray());
+        instance = constructor.Invoke(initializedParameters.ToArray());
 
         if (implementation.TimeToLive == LivingTime.Singleton)
         {
