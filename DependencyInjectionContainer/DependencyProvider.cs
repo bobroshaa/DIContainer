@@ -1,16 +1,18 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace DependencyInjectionContainer;
 
 public class DependencyProvider
 {
     private DependenciesConfiguration _dependencies;
+    public readonly ConcurrentDictionary<Type, object> singletonDependency = new();
 
     public DependencyProvider(DependenciesConfiguration dependencies)
     {
         _dependencies = dependencies;
     }
-    
+
     public T Resolve<T>()
     {
         return (T)Resolve(typeof(T));
@@ -18,21 +20,32 @@ public class DependencyProvider
 
     private object Resolve(Type type)
     {
-        Type implementation = _dependencies.Services[type];
-        ConstructorInfo constructor = implementation.GetConstructors()[0];
+        ImplenetationInfo implementation = _dependencies.Services[type];
+        if (singletonDependency.ContainsKey(implementation.ImplementationType))
+        {
+            return singletonDependency[implementation.ImplementationType];
+        }
+        
+        ConstructorInfo constructor = implementation.ImplementationType.GetConstructors()[0];
         ParameterInfo[] parameters = constructor.GetParameters();
         if (parameters.Length == 0)
         {
-            return Activator.CreateInstance(implementation);
+            return Activator.CreateInstance(implementation.ImplementationType);
         }
 
         List<object> initializedParameters = new List<object>(parameters.Length);
         foreach (var param in parameters)
         {
-            initializedParameters.Add(Activator.CreateInstance(param.ParameterType));
+            initializedParameters.Add(Resolve(param.ParameterType));
         }
-        return constructor.Invoke(initializedParameters.ToArray());
+
+        var instance = constructor.Invoke(initializedParameters.ToArray());
+
+        if (implementation.TimeToLive == LivingTime.Singleton)
+        {
+            singletonDependency[implementation.ImplementationType] = instance;
+        }
+
+        return instance;
     }
-    
-    // TODO: add Resolve<IEnumerable<T>>
 }
