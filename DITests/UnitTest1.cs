@@ -81,6 +81,21 @@ public class Tests
         dependencies.Register<IRepository, RepositoryImpl>();
         dependencies.Register<IService5<IRepository>, ServiceImpl5<IRepository>>();
         var provider = new DependencyProvider(dependencies);
-        var services = provider.Resolve<IService5<IRepository>>();
+        var service = provider.Resolve<IService5<IRepository>>();
+        Assert.That(service.GetType().ToString(), Is.EqualTo("DITests.Tests+ServiceImpl5`1[DITests.IRepository]"));
     }
+    
+    [Test]
+    public void Test6()
+    {
+        var dependencies = new DependenciesConfiguration();
+
+        dependencies.Register(typeof(IService5<>), typeof(ServiceImpl5<>));
+        dependencies.Register<IRepository, RepositoryImpl>();
+        var provider = new DependencyProvider(dependencies);
+        var service = provider.Resolve<IService5<IRepository>>();
+        Assert.That(service.GetType().ToString(), Is.EqualTo("DITests.Tests+ServiceImpl5`1[DITests.IRepository]"));
+    }
+    
+    
 }

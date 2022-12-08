@@ -17,7 +17,7 @@ public class DependencyProvider
 
     public T Resolve<T>()
     {
-        if (typeof(T).GetGenericTypeDefinition().Name.Contains("IEnumerable"))
+        if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition().Name.Contains("IEnumerable"))
         {
             return (T)ResolveEnum(typeof(T));
         }
@@ -27,7 +27,30 @@ public class DependencyProvider
 
     private object Resolve(Type type)
     {
-        ImplenetationInfo implementation = _dependencies.Services[type];
+        if (!_dependencies.Services.TryGetValue(type, out ImplenetationInfo implementation))
+        {
+            if (type.IsGenericType)
+            {
+                if (!_dependencies.Services.TryGetValue(type.GetGenericTypeDefinition(),
+                        out implementation))
+                {
+                    return null;
+                }
+            }
+            else
+            {
+                var t = type.GetInterfaces()[0];
+                if (!_dependencies.Services.TryGetValue(type.GetInterfaces()[0], out implementation))
+                {
+                    return null;
+                }
+                else
+                {
+                    return type.DeclaringType.MakeGenericType(type.GetInterfaces()[0]);
+                }
+            }
+        }
+
         if (singletonDependency.ContainsKey(implementation.ImplementationType))
         {
             return singletonDependency[implementation.ImplementationType];
@@ -53,7 +76,9 @@ public class DependencyProvider
             initializedParameters.Add(Resolve(param.ParameterType));
         }
 
+        
         instance = constructor.Invoke(initializedParameters.ToArray());
+        //instance = Activator.CreateInstance(implementation.ImplementationType, initializedParameters.ToArray());
 
         if (implementation.TimeToLive == LivingTime.Singleton)
         {
@@ -108,7 +133,7 @@ public class DependencyProvider
 
         return (IEnumerable<object>)implementations;
     }
-    
+
     public IList createList(Type myType)
     {
         Type genericListType = typeof(List<>).MakeGenericType(myType);

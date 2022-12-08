@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace DependencyInjectionContainer;
 
@@ -14,5 +15,14 @@ public class DependenciesConfiguration
                 { Services[typeof(TDependency)], new ImplenetationInfo(timeToLive, typeof(TImplementation)) };
         else
             Services[typeof(TDependency)] = new ImplenetationInfo(timeToLive, typeof(TImplementation));
+    }
+    
+    public void Register(Type TDependency, Type TImplementation, LivingTime timeToLive = LivingTime.InstancePerDependency)
+    {
+        if (Services.ContainsKey(TDependency))
+            EnumerableServices[TDependency] = new List<ImplenetationInfo>()
+                { Services[TDependency], new ImplenetationInfo(timeToLive, TImplementation) };
+        else
+            Services[TDependency] = new ImplenetationInfo(timeToLive, TImplementation);
     }
 }
