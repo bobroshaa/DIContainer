@@ -59,15 +59,14 @@ public class Tests
         Assert.That(services.Count(), Is.EqualTo(2));
     }
     
-    interface IService5<TRepository> where TRepository : IRepository
+    interface IService5<T>
     {
             
     }
 
-    class ServiceImpl5<TRepository> : IService5<TRepository> 
-        where TRepository : IRepository
+    class ServiceImpl5<T> : IService5<T>
     {
-        public ServiceImpl5(TRepository repository)
+        public ServiceImpl5(T repository)
         {
                
         }
@@ -96,6 +95,5 @@ public class Tests
         var service = provider.Resolve<IService5<IRepository>>();
         Assert.That(service.GetType().ToString(), Is.EqualTo("DITests.Tests+ServiceImpl5`1[DITests.IRepository]"));
     }
-    
-    
+
 }

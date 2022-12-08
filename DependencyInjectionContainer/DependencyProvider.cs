@@ -39,7 +39,7 @@ public class DependencyProvider
             }
             else
             {
-                var t = type.GetInterfaces()[0];
+                /*var t = type.GetInterfaces()[0];
                 if (!_dependencies.Services.TryGetValue(type.GetInterfaces()[0], out implementation))
                 {
                     return null;
@@ -47,7 +47,8 @@ public class DependencyProvider
                 else
                 {
                     return type.DeclaringType.MakeGenericType(type.GetInterfaces()[0]);
-                }
+                }*/
+                return null;
             }
         }
 
@@ -55,16 +56,20 @@ public class DependencyProvider
         {
             return singletonDependency[implementation.ImplementationType];
         }
-
-        ConstructorInfo constructor = implementation.ImplementationType.GetConstructors()[0];
+        var instanceType = implementation.ImplementationType;
+        if (instanceType.IsGenericTypeDefinition)
+        {
+            instanceType = instanceType.MakeGenericType(type.GenericTypeArguments);
+        }
+        ConstructorInfo constructor = instanceType.GetConstructors()[0];
         ParameterInfo[] parameters = constructor.GetParameters();
         object instance;
         if (parameters.Length == 0)
         {
-            instance = Activator.CreateInstance(implementation.ImplementationType);
+            instance = Activator.CreateInstance(instanceType);
             if (implementation.TimeToLive == LivingTime.Singleton)
             {
-                singletonDependency[implementation.ImplementationType] = instance;
+                singletonDependency[instanceType] = instance;
             }
 
             return instance;
@@ -82,7 +87,7 @@ public class DependencyProvider
 
         if (implementation.TimeToLive == LivingTime.Singleton)
         {
-            singletonDependency[implementation.ImplementationType] = instance;
+            singletonDependency[instanceType] = instance;
         }
 
         return instance;
