@@ -58,4 +58,29 @@ public class Tests
         IEnumerable<IService1> services = provider.Resolve<IEnumerable<IService1>>();
         Assert.That(services.Count(), Is.EqualTo(2));
     }
+    
+    interface IService5<TRepository> where TRepository : IRepository
+    {
+            
+    }
+
+    class ServiceImpl5<TRepository> : IService5<TRepository> 
+        where TRepository : IRepository
+    {
+        public ServiceImpl5(TRepository repository)
+        {
+               
+        }
+    }
+    
+    [Test]
+    public void Test5()
+    {
+        var dependencies = new DependenciesConfiguration();
+
+        dependencies.Register<IRepository, RepositoryImpl>();
+        dependencies.Register<IService5<IRepository>, ServiceImpl5<IRepository>>();
+        var provider = new DependencyProvider(dependencies);
+        var services = provider.Resolve<IService5<IRepository>>();
+    }
 }

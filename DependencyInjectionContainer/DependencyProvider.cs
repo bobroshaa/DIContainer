@@ -17,7 +17,7 @@ public class DependencyProvider
 
     public T Resolve<T>()
     {
-        if (typeof(T).IsGenericType)
+        if (typeof(T).GetGenericTypeDefinition().Name.Contains("IEnumerable"))
         {
             return (T)ResolveEnum(typeof(T));
         }
