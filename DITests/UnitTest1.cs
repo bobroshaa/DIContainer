@@ -46,4 +46,16 @@ public class Tests
         var newService1 = provider.Resolve<IService1>();
         Assert.That(newService1.SomeData, Is.EqualTo("singleton"));
     }
+    
+    [Test]
+    public void Test4()
+    {
+        var dependencies = new DependenciesConfiguration();
+
+        dependencies.Register<IService1, Service1>();
+        dependencies.Register<IService1, Service3>();
+        var provider = new DependencyProvider(dependencies);
+        IEnumerable<IService1> services = provider.Resolve<IEnumerable<IService1>>();
+        Assert.That(services.Count(), Is.EqualTo(2));
+    }
 }

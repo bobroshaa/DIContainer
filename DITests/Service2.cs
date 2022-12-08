@@ -1,5 +1,4 @@
 ﻿namespace DITests;
-
 public abstract class AbstractService2
 {
     public void DoSomething()
@@ -9,5 +8,5 @@ public abstract class AbstractService2
 }
 public class Service2 : AbstractService2
 {
-    
+
 }
