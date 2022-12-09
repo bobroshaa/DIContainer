@@ -95,5 +95,25 @@ public class Tests
         var service = provider.Resolve<IService5<IRepository>>();
         Assert.That(service.GetType().ToString(), Is.EqualTo("DITests.Tests+ServiceImpl5`1[DITests.IRepository]"));
     }
+    
+    enum ServiceImplementations
+    {
+        First,
+        Second
+    }
+    
+    [Test]
+    public void Test7()
+    {
+        var dependencies = new DependenciesConfiguration();
+        
+        dependencies.Register<IService1, Service1>(LivingTime.InstancePerDependency, ServiceImplementations.First);
+        dependencies.Register<IService1, Service3>(LivingTime.InstancePerDependency, ServiceImplementations.Second);
 
+        var provider = new DependencyProvider(dependencies);
+        var first = provider.Resolve<IService1>(ServiceImplementations.First);
+        var second = provider.Resolve<IService1>(ServiceImplementations.Second);
+        Assert.That(first.GetType().ToString(), Is.EqualTo("DITests.Service1"));
+        Assert.That(second.GetType().ToString(), Is.EqualTo("DITests.Service3"));
+    }
 }

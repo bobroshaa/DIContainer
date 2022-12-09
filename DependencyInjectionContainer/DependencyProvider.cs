@@ -15,14 +15,61 @@ public class DependencyProvider
         _dependencies = dependencies;
     }
 
-    public T Resolve<T>()
+    public T Resolve<T>(Enum? index = null)
     {
         if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition().Name.Contains("IEnumerable"))
         {
             return (T)ResolveEnum(typeof(T));
         }
 
+        if (index != null)
+        {
+            return (T)Resolve(typeof(T), index);
+        }
+
         return (T)Resolve(typeof(T));
+    }
+
+    private object Resolve(Type type, Enum index)
+    {
+        object inst = null;
+        foreach (var implementation in _dependencies.EnumerableServices[type])
+        {
+            if (!implementation.Index.Equals(index))
+                continue;
+            if (singletonDependency.ContainsKey(implementation.ImplementationType))
+            {
+                inst = singletonDependency[implementation.ImplementationType];
+                return inst;
+            }
+
+            ConstructorInfo constructor = implementation.ImplementationType.GetConstructors()[0];
+            ParameterInfo[] parameters = constructor.GetParameters();
+            if (parameters.Length == 0)
+            {
+                inst = Activator.CreateInstance(implementation.ImplementationType);
+                if (implementation.TimeToLive == LivingTime.Singleton)
+                {
+                    singletonDependency[implementation.ImplementationType] = inst;
+                }
+
+                return inst;
+            }
+
+            List<object> initializedParameters = new List<object>(parameters.Length);
+            foreach (var param in parameters)
+            {
+                initializedParameters.Add(Resolve(param.ParameterType));
+            }
+
+            inst = constructor.Invoke(initializedParameters.ToArray());
+
+            if (implementation.TimeToLive == LivingTime.Singleton)
+            {
+                singletonDependency[implementation.ImplementationType] = inst;
+            }
+        }
+        return inst;
     }
 
     private object Resolve(Type type)

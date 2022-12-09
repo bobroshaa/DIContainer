@@ -8,21 +8,27 @@ public class DependenciesConfiguration
     public readonly ConcurrentDictionary<Type, ImplenetationInfo> Services = new();
     public readonly ConcurrentDictionary<Type, List<ImplenetationInfo>> EnumerableServices = new();
 
-    public void Register<TDependency, TImplementation>(LivingTime timeToLive = LivingTime.InstancePerDependency)
+    public void Register<TDependency, TImplementation>(LivingTime timeToLive = LivingTime.InstancePerDependency, Enum? index = null )
     {
         if (Services.ContainsKey(typeof(TDependency)))
-            EnumerableServices[typeof(TDependency)] = new List<ImplenetationInfo>()
-                { Services[typeof(TDependency)], new ImplenetationInfo(timeToLive, typeof(TImplementation)) };
+            EnumerableServices[typeof(TDependency)].Add(new ImplenetationInfo(timeToLive, typeof(TImplementation), index));
         else
-            Services[typeof(TDependency)] = new ImplenetationInfo(timeToLive, typeof(TImplementation));
+        {
+            EnumerableServices[typeof(TDependency)] = new List<ImplenetationInfo>()
+                { new (timeToLive, typeof(TImplementation), index) };
+            Services[typeof(TDependency)] = new ImplenetationInfo(timeToLive, typeof(TImplementation), index);
+        }
     }
     
-    public void Register(Type TDependency, Type TImplementation, LivingTime timeToLive = LivingTime.InstancePerDependency)
+    public void Register(Type TDependency, Type TImplementation, LivingTime timeToLive = LivingTime.InstancePerDependency, Enum? index = null )
     {
         if (Services.ContainsKey(TDependency))
-            EnumerableServices[TDependency] = new List<ImplenetationInfo>()
-                { Services[TDependency], new ImplenetationInfo(timeToLive, TImplementation) };
+            EnumerableServices[TDependency].Add(new ImplenetationInfo(timeToLive, TImplementation, index));
         else
-            Services[TDependency] = new ImplenetationInfo(timeToLive, TImplementation);
+        {
+            EnumerableServices[TDependency] = new List<ImplenetationInfo>()
+                { new (timeToLive, TImplementation, index) };
+            Services[TDependency] = new ImplenetationInfo(timeToLive, TImplementation, index);
+        }
     }
 }
