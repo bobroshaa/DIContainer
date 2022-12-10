@@ -81,18 +81,6 @@ public class Tests
         Assert.That(services.Count(), Is.EqualTo(2));
     }
 
-    interface IService5<TRepository> where TRepository : IRepository
-    {
-    }
-
-    class ServiceImpl5<TRepository> : IService5<TRepository>
-        where TRepository : IRepository
-    {
-        public ServiceImpl5(TRepository repository)
-        {
-        }
-    }
-
     [Test]
     public void GenericRegistrationTest()
     {
@@ -102,7 +90,7 @@ public class Tests
         
         var provider = new DependencyProvider(dependencies);
         var service = provider.Resolve<IService5<IRepository>>();
-        Assert.That(service.GetType().ToString(), Is.EqualTo("DITests.Tests+ServiceImpl5`1[DITests.IRepository]"));
+        Assert.That(service.GetType().ToString(), Is.EqualTo("DITests.ServiceImpl5`1[DITests.IRepository]"));
     }
 
     [Test]
@@ -114,7 +102,7 @@ public class Tests
         
         var provider = new DependencyProvider(dependencies);
         var service = provider.Resolve<IService5<IRepository>>();
-        Assert.That(service.GetType().ToString(), Is.EqualTo("DITests.Tests+ServiceImpl5`1[DITests.IRepository]"));
+        Assert.That(service.GetType().ToString(), Is.EqualTo("DITests.ServiceImpl5`1[DITests.IRepository]"));
     }
 
     enum ServiceImplementations

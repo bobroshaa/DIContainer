@@ -1,14 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Concurrent;
-using System.ComponentModel.Design.Serialization;
 using System.Reflection;
 
 namespace DependencyInjectionContainer;
 
 public class DependencyProvider
 {
-    private DependenciesConfiguration _dependencies;
-    public readonly ConcurrentDictionary<Type, object> singletonDependency = new();
+    private readonly DependenciesConfiguration _dependencies;
+    private readonly ConcurrentDictionary<Type, object> _singletonDependency = new();
 
     public DependencyProvider(DependenciesConfiguration dependencies)
     {
@@ -17,7 +16,7 @@ public class DependencyProvider
 
     public T Resolve<T>(Enum? index = null)
     {
-        if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition().Name.Contains("IEnumerable"))
+        if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(IEnumerable<>))
         {
             return (T)ResolveEnum(typeof(T));
         }
@@ -32,49 +31,18 @@ public class DependencyProvider
 
     private object Resolve(Type type, Enum index)
     {
-        object inst = null;
         foreach (var implementation in _dependencies.EnumerableServices[type])
         {
-            if (!implementation.Index.Equals(index))
-                continue;
-            if (singletonDependency.ContainsKey(implementation.ImplementationType))
-            {
-                inst = singletonDependency[implementation.ImplementationType];
-                return inst;
-            }
-
-            ConstructorInfo constructor = implementation.ImplementationType.GetConstructors()[0];
-            ParameterInfo[] parameters = constructor.GetParameters();
-            if (parameters.Length == 0)
-            {
-                inst = Activator.CreateInstance(implementation.ImplementationType);
-                if (implementation.TimeToLive == LivingTime.Singleton)
-                {
-                    singletonDependency[implementation.ImplementationType] = inst;
-                }
-
-                return inst;
-            }
-
-            List<object> initializedParameters = new List<object>(parameters.Length);
-            foreach (var param in parameters)
-            {
-                initializedParameters.Add(Resolve(param.ParameterType));
-            }
-
-            inst = constructor.Invoke(initializedParameters.ToArray());
-
-            if (implementation.TimeToLive == LivingTime.Singleton)
-            {
-                singletonDependency[implementation.ImplementationType] = inst;
-            }
+            if (implementation.Index.Equals(index))
+                return CreateInstance(type, implementation);
         }
-        return inst;
+
+        return null;
     }
 
     private object Resolve(Type type)
     {
-        if (!_dependencies.Services.TryGetValue(type, out ImplenetationInfo implementation))
+        if (!_dependencies.Services.TryGetValue(type, out ImplementationInfo implementation))
         {
             if (type.IsGenericType)
             {
@@ -86,37 +54,53 @@ public class DependencyProvider
             }
             else
             {
-                /*var t = type.GetInterfaces()[0];
-                if (!_dependencies.Services.TryGetValue(type.GetInterfaces()[0], out implementation))
-                {
-                    return null;
-                }
-                else
-                {
-                    return type.DeclaringType.MakeGenericType(type.GetInterfaces()[0]);
-                }*/
                 return null;
             }
         }
+        return CreateInstance(type, implementation);
+    }
 
-        if (singletonDependency.ContainsKey(implementation.ImplementationType))
+
+    private IEnumerable<object> ResolveEnum(Type type)
+    {
+        var implementations = createList(type.GenericTypeArguments[0]);
+        foreach (var implementation in _dependencies.EnumerableServices[type.GenericTypeArguments[0]])
         {
-            return singletonDependency[implementation.ImplementationType];
+            implementations.Add(CreateInstance(type, implementation));
+        }
+
+        return (IEnumerable<object>)implementations;
+    }
+
+    private object CreateInstance(Type type, ImplementationInfo implementation)
+    {
+        if (_singletonDependency.ContainsKey(implementation.ImplementationType))
+        {
+            return _singletonDependency[implementation.ImplementationType];
         }
         var instanceType = implementation.ImplementationType;
         if (instanceType.IsGenericTypeDefinition)
         {
             instanceType = instanceType.MakeGenericType(type.GenericTypeArguments);
         }
-        ConstructorInfo constructor = instanceType.GetConstructors()[0];
-        ParameterInfo[] parameters = constructor.GetParameters();
+        var constructors = instanceType.GetConstructors();
+        var constructor = constructors[0];
+        foreach (var constructorInfo in constructors)
+        {
+            constructor = constructor.GetParameters().Where(p => p.ParameterType.IsInterface).ToList().Count >
+                          constructorInfo.GetParameters().Where(p => p.ParameterType.IsInterface).ToList().Count
+                ? constructor
+                : constructorInfo;
+
+        }
+        var parameters = constructor.GetParameters();
         object instance;
         if (parameters.Length == 0)
         {
             instance = Activator.CreateInstance(instanceType);
             if (implementation.TimeToLive == LivingTime.Singleton)
             {
-                singletonDependency[instanceType] = instance;
+                _singletonDependency[instanceType] = instance;
             }
 
             return instance;
@@ -130,60 +114,13 @@ public class DependencyProvider
 
         
         instance = constructor.Invoke(initializedParameters.ToArray());
-        //instance = Activator.CreateInstance(implementation.ImplementationType, initializedParameters.ToArray());
 
         if (implementation.TimeToLive == LivingTime.Singleton)
         {
-            singletonDependency[instanceType] = instance;
+            _singletonDependency[instanceType] = instance;
         }
 
         return instance;
-    }
-
-
-    // TODO Вынести в отдельный метод, тк повтор идет
-    private IEnumerable<object> ResolveEnum(Type type)
-    {
-        var implementations = createList(type.GenericTypeArguments[0]);
-        foreach (var implementation in _dependencies.EnumerableServices[type.GenericTypeArguments[0]])
-        {
-            object instance;
-            if (singletonDependency.ContainsKey(implementation.ImplementationType))
-            {
-                implementations.Add(singletonDependency[implementation.ImplementationType]);
-            }
-
-            ConstructorInfo constructor = implementation.ImplementationType.GetConstructors()[0];
-            ParameterInfo[] parameters = constructor.GetParameters();
-            if (parameters.Length == 0)
-            {
-                instance = Activator.CreateInstance(implementation.ImplementationType);
-                if (implementation.TimeToLive == LivingTime.Singleton)
-                {
-                    singletonDependency[implementation.ImplementationType] = instance;
-                }
-
-                implementations.Add(instance);
-                continue;
-            }
-
-            List<object> initializedParameters = new List<object>(parameters.Length);
-            foreach (var param in parameters)
-            {
-                initializedParameters.Add(Resolve(param.ParameterType));
-            }
-
-            instance = constructor.Invoke(initializedParameters.ToArray());
-
-            if (implementation.TimeToLive == LivingTime.Singleton)
-            {
-                singletonDependency[implementation.ImplementationType] = instance;
-            }
-
-            implementations.Add(instance);
-        }
-
-        return (IEnumerable<object>)implementations;
     }
 
     public IList createList(Type myType)

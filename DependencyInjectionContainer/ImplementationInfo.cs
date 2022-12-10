@@ -2,9 +2,9 @@
 
 namespace DependencyInjectionContainer;
 
-public class ImplenetationInfo
+public class ImplementationInfo
 {
-    public ImplenetationInfo(LivingTime timeToLive, Type implementationType, Enum? index)
+    public ImplementationInfo(LivingTime timeToLive, Type implementationType, Enum? index)
     {
         TimeToLive = timeToLive;
         ImplementationType = implementationType;
