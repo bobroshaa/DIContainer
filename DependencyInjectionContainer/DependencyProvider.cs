@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Concurrent;
-using System.Reflection;
 
 namespace DependencyInjectionContainer;
 
@@ -42,11 +41,11 @@ public class DependencyProvider
 
     private object Resolve(Type type)
     {
-        if (!_dependencies.Services.TryGetValue(type, out ImplementationInfo implementation))
+        if (!_dependencies.EnumerableServices.TryGetValue(type, out List<ImplementationInfo> implementation))
         {
             if (type.IsGenericType)
             {
-                if (!_dependencies.Services.TryGetValue(type.GetGenericTypeDefinition(),
+                if (!_dependencies.EnumerableServices.TryGetValue(type.GetGenericTypeDefinition(),
                         out implementation))
                 {
                     return null;
@@ -57,13 +56,13 @@ public class DependencyProvider
                 return null;
             }
         }
-        return CreateInstance(type, implementation);
+        return CreateInstance(type, implementation[0]);
     }
 
 
     private IEnumerable<object> ResolveEnum(Type type)
     {
-        var implementations = createList(type.GenericTypeArguments[0]);
+        var implementations = CreateList(type.GenericTypeArguments[0]);
         foreach (var implementation in _dependencies.EnumerableServices[type.GenericTypeArguments[0]])
         {
             implementations.Add(CreateInstance(type, implementation));
@@ -78,11 +77,13 @@ public class DependencyProvider
         {
             return _singletonDependency[implementation.ImplementationType];
         }
+        
         var instanceType = implementation.ImplementationType;
         if (instanceType.IsGenericTypeDefinition)
         {
             instanceType = instanceType.MakeGenericType(type.GenericTypeArguments);
         }
+        
         var constructors = instanceType.GetConstructors();
         var constructor = constructors[0];
         foreach (var constructorInfo in constructors)
@@ -91,8 +92,8 @@ public class DependencyProvider
                           constructorInfo.GetParameters().Where(p => p.ParameterType.IsInterface).ToList().Count
                 ? constructor
                 : constructorInfo;
-
         }
+        
         var parameters = constructor.GetParameters();
         object instance;
         if (parameters.Length == 0)
@@ -123,7 +124,7 @@ public class DependencyProvider
         return instance;
     }
 
-    public IList createList(Type myType)
+    public IList CreateList(Type myType)
     {
         Type genericListType = typeof(List<>).MakeGenericType(myType);
         return (IList)Activator.CreateInstance(genericListType);
